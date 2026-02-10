@@ -1281,8 +1281,5 @@ async function run() {
 
 run().catch(console.dir);
 
-// Start server
-// app.listen(port, () => {
-    console.log(`🚀 Server running on port ${port}`);
-//     // console.log(`🌐 Open http://localhost:${port} to test`);
-// });
+// serverless এর জন্য
+module.exports = app;
