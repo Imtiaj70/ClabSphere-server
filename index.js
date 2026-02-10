@@ -11,13 +11,13 @@ const admin = require("firebase-admin");
 const port = process.env.PORT || 3000;
 
 const decoded = Buffer
-    .from(process.env.FB_SERVICE_KEY, "base64")
-    .toString("utf8");
+  .from(process.env.FB_SERVICE_KEY, "base64")
+  .toString("utf8");
 
 const serviceAccount = JSON.parse(decoded);
 
 admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
+  credential: admin.credential.cert(serviceAccount),
 });
 
 
@@ -25,8 +25,8 @@ admin.initializeApp({
 app.use(cors());
 app.use(express.json());
 const verifyToken = async (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
+    const authHeader = req.headers.authorization;   
+    if (!authHeader) {       
         req.decoded_email = req.headers['x-user-email'] || "test@example.com";
         return next();
     }
@@ -44,38 +44,29 @@ const verifyToken = async (req, res, next) => {
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.xp73onh.mongodb.net/zap_shift_db?retryWrites=true&w=majority`;
 
-let client;
-let clientPromise;
-
-if (!clientPromise) {
-    client = new MongoClient(uri, {
-        serverApi: {
-            version: ServerApiVersion.v1,
-            strict: true,
-            deprecationErrors: true,
-        },
-    });
-    clientPromise = client.connect();
-}
+const client = new MongoClient(uri, {
+    serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+    }
+});
 
 async function run() {
     try {
-        const connectedClient = await clientPromise;
-        console.log("✅ MongoDB connected successfully!");
-
-        const db = connectedClient.db("zap_shift_db");
-
-        const usersCollection = db.collection("users");
-        const clubsCollection = db.collection("clubs");
-        const eventsCollection = db.collection("events");
-        const eventRegistrationsCollection = db.collection("eventRegistrations");
-        const clubMembershipCollection = db.collection("clubMembership");
-        const paymentCollection = db.collection("payments");
-
+        // await client.connect();
+        console.log("✅ MongoDB connected successfully!");        
+        const db = client.db('zap_shift_db');
+        const usersCollection = db.collection('users');
+        const clubsCollection = db.collection('clubs');
+        const eventsCollection = db.collection('events');
+        const eventRegistrationsCollection = db.collection('eventRegistrations');
+        const clubMembershipCollection = db.collection('clubMembership');
+        const paymentCollection = db.collection('payments');
 
         const collections = await db.listCollections().toArray();
         const collectionNames = collections.map(c => c.name);
-
+        
         const requiredCollections = ['users', 'clubs', 'events', 'eventRegistrations', 'clubMembership', 'payments'];
         for (const colName of requiredCollections) {
             if (!collectionNames.includes(colName)) {
@@ -83,9 +74,9 @@ async function run() {
                 console.log(`📁 Created collection: ${colName}`);
             }
         }
-
+        
         // ==================== BASIC ENDPOINTS ====================
-
+        
         // Home route
         app.get('/', (req, res) => {
             res.json({
@@ -104,7 +95,7 @@ async function run() {
                 // ]
             });
         });
-
+        
         // Health check
         // app.get('/health', async (req, res) => {
         //     try {
@@ -118,9 +109,9 @@ async function run() {
         //         res.status(500).json({ status: 'unhealthy', error: error.message });
         //     }
         // });
-
+        
         // ==================== USER ENDPOINTS ====================
-
+        
         // Create user
         app.post('/users', async (req, res) => {
             try {
@@ -128,13 +119,13 @@ async function run() {
                 user.role = user.role || 'member';
                 user.createdAt = new Date().toISOString();
                 const email = user.email;
-
+                
                 const userExists = await usersCollection.findOne({ email });
                 if (userExists) {
-                    return res.json({
-                        success: true,
-                        message: 'User already exists',
-                        user: userExists
+                    return res.json({ 
+                        success: true, 
+                        message: 'User already exists', 
+                        user: userExists 
                     });
                 }
 
@@ -145,21 +136,21 @@ async function run() {
                     userId: result.insertedId
                 });
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: "Internal server error",
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Internal server error", 
+                    error: error.message 
                 });
             }
         });
         // verifyToken,
-
+        
         // Get user role
         app.get('/users/:email/role', verifyToken, async (req, res) => {
             try {
                 const email = req.params.email;
                 const user = await usersCollection.findOne({ email });
-
+                
                 if (!user) {
                     // Auto-create user if not exists
                     const newUser = {
@@ -175,27 +166,27 @@ async function run() {
                 res.json({ role: user.role || 'member' });
             } catch (error) {
                 console.error(error);
-                res.status(500).json({
-                    success: false,
-                    message: "Internal server error"
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Internal server error" 
                 });
             }
         });
-
+        
         // Get all users
         app.get('/users', async (req, res) => {
             try {
                 const users = await usersCollection.find().toArray();
                 res.json(users);
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: "Failed to fetch users",
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Failed to fetch users", 
+                    error: error.message 
                 });
             }
         });
-
+        
         // Update user role
         app.patch('/users/:id/role', async (req, res) => {
             try {
@@ -203,9 +194,9 @@ async function run() {
                 const { role } = req.body;
 
                 if (!role) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Role is required"
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: "Role is required" 
                     });
                 }
 
@@ -215,27 +206,27 @@ async function run() {
                 );
 
                 if (result.modifiedCount === 0) {
-                    return res.status(404).json({
-                        success: false,
-                        message: "User not found"
+                    return res.status(404).json({ 
+                        success: false, 
+                        message: "User not found" 
                     });
                 }
 
-                res.json({
-                    success: true,
-                    message: "User role updated successfully"
+                res.json({ 
+                    success: true, 
+                    message: "User role updated successfully" 
                 });
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: "Failed to update user role",
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Failed to update user role", 
+                    error: error.message 
                 });
             }
         });
-
+        
         // ==================== CLUB ENDPOINTS ====================
-
+        
         // Get all clubs with filters
         app.get('/clubs', async (req, res) => {
             try {
@@ -248,17 +239,17 @@ async function run() {
 
                 const options = { sort: { createdAt: -1 } };
                 const clubs = await clubsCollection.find(query, options).toArray();
-
+                
                 res.json(clubs);
             } catch (error) {
                 console.error("Failed to fetch clubs:", error);
-                res.status(500).json({
-                    success: false,
-                    message: "Failed to fetch clubs"
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Failed to fetch clubs" 
                 });
             }
         });
-
+        
         // Get single club by ID
         app.get('/clubs/:id', async (req, res) => {
             try {
@@ -266,34 +257,34 @@ async function run() {
                 const club = await clubsCollection.findOne({ _id: new ObjectId(clubId) });
 
                 if (!club) {
-                    return res.status(404).json({
-                        success: false,
-                        message: "Club not found"
+                    return res.status(404).json({ 
+                        success: false, 
+                        message: "Club not found" 
                     });
                 }
 
-                res.json({
-                    success: true,
-                    data: club
+                res.json({ 
+                    success: true, 
+                    data: club 
                 });
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: "Server error",
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Server error", 
+                    error: error.message 
                 });
             }
         });
-
+        
         // Create club
         app.post('/clubs', async (req, res) => {
             try {
                 const newClub = req.body;
                 newClub.createdAt = new Date().toISOString();
                 newClub.status = newClub.status || "pending";
-
+                
                 const result = await clubsCollection.insertOne(newClub);
-
+                
                 res.json({
                     success: true,
                     message: 'Club created successfully',
@@ -301,43 +292,43 @@ async function run() {
                     data: newClub
                 });
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: "Failed to create club",
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Failed to create club", 
+                    error: error.message 
                 });
             }
         });
-
+        
         // Get clubs by manager
         app.get('/my-clubs', async (req, res) => {
             try {
                 const managerEmail = req.query.managerEmail;
 
                 if (!managerEmail) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "managerEmail is required"
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: "managerEmail is required" 
                     });
                 }
 
                 const managedClubs = await clubsCollection.find({ managerEmail }).toArray();
-
+                
                 res.json({
                     success: true,
                     data: managedClubs
                 });
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: "Failed to fetch clubs",
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Failed to fetch clubs", 
+                    error: error.message 
                 });
             }
         });
-
+        
         // ==================== EVENT ENDPOINTS ====================
-
+        
         // Get upcoming events
         app.get('/events/upcoming', async (req, res) => {
             try {
@@ -353,60 +344,60 @@ async function run() {
 
                 const options = { sort: { eventDate: 1 } };
                 const events = await eventsCollection.find(query, options).toArray();
-
+                
                 res.json(events);
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: "Failed to fetch upcoming events",
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Failed to fetch upcoming events", 
+                    error: error.message 
                 });
             }
         });
-
+        
         // Get all events
         app.get('/events', async (req, res) => {
             try {
                 const { managerEmail } = req.query;
                 const query = {};
-
+                
                 if (managerEmail) {
                     query.managerEmail = managerEmail;
                 }
-
+                
                 const events = await eventsCollection.find(query).toArray();
                 res.json(events);
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: "Failed to fetch events",
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Failed to fetch events", 
+                    error: error.message 
                 });
             }
         });
-
+        
         // Create event
         app.post('/events', async (req, res) => {
             try {
                 const newEvent = req.body;
                 newEvent.createdAt = new Date().toISOString();
-
+                
                 const result = await eventsCollection.insertOne(newEvent);
-
+                
                 res.json({
                     success: true,
                     message: 'Event created successfully',
                     eventId: result.insertedId
                 });
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: "Failed to create event",
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Failed to create event", 
+                    error: error.message 
                 });
             }
         });
-
+        
         // Update event
         app.patch('/events/:id', async (req, res) => {
             try {
@@ -419,25 +410,25 @@ async function run() {
                 const result = await eventsCollection.updateOne(query, updatedDoc);
 
                 if (result.matchedCount === 0) {
-                    return res.status(404).json({
-                        success: false,
-                        message: 'Event not found'
+                    return res.status(404).json({ 
+                        success: false, 
+                        message: 'Event not found' 
                     });
                 }
 
-                res.json({
-                    success: true,
-                    message: 'Event updated successfully'
+                res.json({ 
+                    success: true, 
+                    message: 'Event updated successfully' 
                 });
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: 'Failed to update event',
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: 'Failed to update event', 
+                    error: error.message 
                 });
             }
         });
-
+        
         // Delete event
         app.delete('/events/:id', async (req, res) => {
             try {
@@ -447,27 +438,27 @@ async function run() {
                 const result = await eventsCollection.deleteOne(query);
 
                 if (result.deletedCount === 0) {
-                    return res.status(404).json({
-                        success: false,
-                        message: 'Event not found'
+                    return res.status(404).json({ 
+                        success: false, 
+                        message: 'Event not found' 
                     });
                 }
 
-                res.json({
-                    success: true,
-                    message: 'Event deleted successfully'
+                res.json({ 
+                    success: true, 
+                    message: 'Event deleted successfully' 
                 });
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: 'Failed to delete event',
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: 'Failed to delete event', 
+                    error: error.message 
                 });
             }
         });
-
+        
         // ==================== EVENT REGISTRATION ENDPOINTS ====================
-
+        
         // Register for event
         app.post('/event-registrations', async (req, res) => {
             try {
@@ -475,9 +466,9 @@ async function run() {
                 const { eventId, userEmail } = registration;
 
                 if (!eventId || !userEmail) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Missing required fields"
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: "Missing required fields" 
                     });
                 }
 
@@ -488,9 +479,9 @@ async function run() {
                 });
 
                 if (existing) {
-                    return res.status(409).json({
-                        success: false,
-                        message: "Already registered for this event"
+                    return res.status(409).json({ 
+                        success: false, 
+                        message: "Already registered for this event" 
                     });
                 }
 
@@ -506,80 +497,80 @@ async function run() {
                 });
             } catch (error) {
                 console.error("Event Registration Error:", error);
-                res.status(500).json({
-                    success: false,
-                    message: "Internal server error"
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Internal server error" 
                 });
             }
         });
-
+        
         // Get event registrations
         app.get('/event-registrations', async (req, res) => {
             try {
                 const { managerEmail, role } = req.query;
 
                 if (!managerEmail || !role) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'managerEmail and role are required'
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: 'managerEmail and role are required' 
                     });
                 }
 
                 // Check if user is manager
-                const manager = await usersCollection.findOne({
-                    email: managerEmail,
-                    role: role
+                const manager = await usersCollection.findOne({ 
+                    email: managerEmail, 
+                    role: role 
                 });
-
+                
                 if (!manager) {
-                    return res.status(403).json({
-                        success: false,
-                        message: 'Access denied. Not a manager.'
+                    return res.status(403).json({ 
+                        success: false, 
+                        message: 'Access denied. Not a manager.' 
                     });
                 }
 
                 const registrations = await eventRegistrationsCollection.find().toArray();
                 res.json(registrations);
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: 'Failed to fetch registrations',
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: 'Failed to fetch registrations', 
+                    error: error.message 
                 });
             }
         });
-
+        
         // ==================== CLUB MEMBERSHIP ENDPOINTS ====================
-
+        
         // Get club members
         app.get('/club-members', async (req, res) => {
             try {
                 const { managerEmail, role } = req.query;
 
                 if (!managerEmail || !role) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'managerEmail and role are required'
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: 'managerEmail and role are required' 
                     });
                 }
 
-                const memberships = await clubMembershipCollection.find({
-                    managerEmail
+                const memberships = await clubMembershipCollection.find({ 
+                    managerEmail 
                 }).toArray();
 
-                res.json({
-                    success: true,
-                    data: memberships
+                res.json({ 
+                    success: true, 
+                    data: memberships 
                 });
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: 'Server error',
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: 'Server error', 
+                    error: error.message 
                 });
             }
         });
-
+        
         // Update membership expiration
         app.patch('/club-members/:id/expire', async (req, res) => {
             try {
@@ -587,9 +578,9 @@ async function run() {
                 const { expireDate } = req.body;
 
                 if (!expireDate) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "expireDate is required"
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: "expireDate is required" 
                     });
                 }
 
@@ -603,62 +594,62 @@ async function run() {
                 );
 
                 if (result.modifiedCount === 0) {
-                    return res.status(404).json({
-                        success: false,
-                        message: "Member not found"
+                    return res.status(404).json({ 
+                        success: false, 
+                        message: "Member not found" 
                     });
                 }
 
-                res.json({
-                    success: true,
-                    message: "Membership expiration updated"
+                res.json({ 
+                    success: true, 
+                    message: "Membership expiration updated" 
                 });
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: "Server error",
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Server error", 
+                    error: error.message 
                 });
             }
         });
-
+        
         // Delete membership
         app.delete('/club-members/:id', async (req, res) => {
             try {
                 const { id } = req.params;
 
-                const result = await clubMembershipCollection.deleteOne({
-                    _id: new ObjectId(id)
+                const result = await clubMembershipCollection.deleteOne({ 
+                    _id: new ObjectId(id) 
                 });
 
                 if (result.deletedCount === 0) {
-                    return res.status(404).json({
-                        success: false,
-                        message: "Member not found"
+                    return res.status(404).json({ 
+                        success: false, 
+                        message: "Member not found" 
                     });
                 }
 
-                res.json({
-                    success: true,
-                    message: "Membership deleted successfully"
+                res.json({ 
+                    success: true, 
+                    message: "Membership deleted successfully" 
                 });
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: "Server error",
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Server error", 
+                    error: error.message 
                 });
             }
         });
-
+        
         // ==================== PAYMENT ENDPOINTS ====================
-
+        
         // Create Stripe checkout session for events
         app.post('/payment-checkout-session', async (req, res) => {
             try {
                 const paymentInfo = req.body;
                 const amount = parseInt(paymentInfo.amount) * 100;
-
+                
                 const session = await stripe.checkout.sessions.create({
                     line_items: [{
                         price_data: {
@@ -685,20 +676,20 @@ async function run() {
                     cancel_url: `${process.env.SITE_DOMAIN}/payment-cancelled`,
                 });
 
-                res.json({
-                    success: true,
-                    url: session.url
+                res.json({ 
+                    success: true, 
+                    url: session.url 
                 });
             } catch (error) {
                 console.error("Payment Error:", error);
-                res.status(500).json({
-                    success: false,
-                    message: "Payment session creation failed",
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Payment session creation failed", 
+                    error: error.message 
                 });
             }
         });
-
+        
         // Payment success callback
         app.patch('/payment-success', async (req, res) => {
             try {
@@ -736,9 +727,9 @@ async function run() {
                     };
 
                     await eventRegistrationsCollection.updateOne(
-                        {
-                            eventId: session.metadata.eventId,
-                            userEmail: session.metadata.userEmail
+                        { 
+                            eventId: session.metadata.eventId, 
+                            userEmail: session.metadata.userEmail 
                         },
                         { $setOnInsert: registration },
                         { upsert: true }
@@ -750,9 +741,9 @@ async function run() {
                     });
                 }
 
-                res.status(400).json({
-                    success: false,
-                    message: "Payment not completed"
+                res.status(400).json({ 
+                    success: false, 
+                    message: "Payment not completed" 
                 });
             } catch (error) {
                 res.status(500).json({
@@ -762,7 +753,7 @@ async function run() {
                 });
             }
         });
-
+        
         // Create club membership payment session
         app.post('/payment-club-membership', async (req, res) => {
             try {
@@ -799,20 +790,20 @@ async function run() {
                     cancel_url: `${process.env.SITE_DOMAIN}/club-membership-payment-cancelled`,
                 });
 
-                res.json({
-                    success: true,
-                    url: session.url
+                res.json({ 
+                    success: true, 
+                    url: session.url 
                 });
             } catch (error) {
                 console.error("Club Payment Error:", error);
-                res.status(500).json({
-                    success: false,
-                    message: "Payment session creation failed",
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Payment session creation failed", 
+                    error: error.message 
                 });
             }
         });
-
+        
         // Club membership payment success callback
         app.patch('/club-membership-payment-success', async (req, res) => {
             try {
@@ -854,9 +845,9 @@ async function run() {
                     };
 
                     await clubMembershipCollection.updateOne(
-                        {
-                            userEmail: session.metadata.userEmail,
-                            clubId: session.metadata.clubId
+                        { 
+                            userEmail: session.metadata.userEmail, 
+                            clubId: session.metadata.clubId 
                         },
                         { $setOnInsert: clubMembership },
                         { upsert: true }
@@ -868,9 +859,9 @@ async function run() {
                     });
                 }
 
-                res.status(400).json({
-                    success: false,
-                    message: "Payment not completed"
+                res.status(400).json({ 
+                    success: false, 
+                    message: "Payment not completed" 
                 });
             } catch (error) {
                 console.error("Club Membership Payment Error:", error);
@@ -881,7 +872,7 @@ async function run() {
                 });
             }
         });
-
+        
         // Get payments
         app.get('/payments', async (req, res) => {
             try {
@@ -924,16 +915,16 @@ async function run() {
 
                 res.json(payments);
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: "Failed to fetch payments",
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Failed to fetch payments", 
+                    error: error.message 
                 });
             }
         });
-
+        
         // ==================== DASHBOARD ENDPOINTS ====================
-
+        
         // Admin overview
         app.get('/admin-overview', async (req, res) => {
             try {
@@ -963,8 +954,8 @@ async function run() {
                 const clubs = await clubsCollection.find().toArray();
                 const membershipsPerClub = await Promise.all(
                     clubs.map(async (club) => {
-                        const count = await clubMembershipCollection.countDocuments({
-                            clubId: club._id.toString()
+                        const count = await clubMembershipCollection.countDocuments({ 
+                            clubId: club._id.toString() 
                         });
                         return {
                             clubName: club.name,
@@ -992,13 +983,13 @@ async function run() {
                 });
             } catch (error) {
                 console.error("Admin Overview Error:", error);
-                res.status(500).json({
-                    success: false,
-                    message: "Server Error"
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Server Error" 
                 });
             }
         });
-
+        
         // Club manager overview
         app.get('/club-manager-overview', verifyToken, async (req, res) => {
             try {
@@ -1006,31 +997,31 @@ async function run() {
                 const filterRole = req.query.role;
 
                 if (!managerEmail) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "managerEmail is required"
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: "managerEmail is required" 
                     });
                 }
 
-                const managedClubs = await clubsCollection.find({
-                    managerEmail
+                const managedClubs = await clubsCollection.find({ 
+                    managerEmail 
                 }).toArray();
 
                 if (managedClubs.length === 0) {
-                    return res.status(404).json({
-                        success: false,
-                        message: "No clubs found for this manager"
+                    return res.status(404).json({ 
+                        success: false, 
+                        message: "No clubs found for this manager" 
                     });
                 }
 
-                const managerUser = await usersCollection.findOne({
-                    email: managerEmail
+                const managerUser = await usersCollection.findOne({ 
+                    email: managerEmail 
                 });
 
                 if (!managerUser) {
-                    return res.status(404).json({
-                        success: false,
-                        message: "User not found"
+                    return res.status(404).json({ 
+                        success: false, 
+                        message: "User not found" 
                     });
                 }
 
@@ -1062,18 +1053,18 @@ async function run() {
                 });
 
                 const paymentStats = await paymentCollection.aggregate([
-                    {
-                        $match: {
-                            clubId: { $in: clubIds },
-                            status: "paid"
-                        }
+                    { 
+                        $match: { 
+                            clubId: { $in: clubIds }, 
+                            status: "paid" 
+                        } 
                     },
-                    {
-                        $group: {
-                            _id: null,
-                            totalAmount: { $sum: "$amount" },
-                            totalPayments: { $sum: 1 }
-                        }
+                    { 
+                        $group: { 
+                            _id: null, 
+                            totalAmount: { $sum: "$amount" }, 
+                            totalPayments: { $sum: 1 } 
+                        } 
                     }
                 ]).toArray();
 
@@ -1103,46 +1094,46 @@ async function run() {
                 });
             } catch (error) {
                 console.error("Club Manager Overview Error:", error);
-                res.status(500).json({
-                    success: false,
-                    message: "Server Error"
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Server Error" 
                 });
             }
         });
-
+        
         // Member overview
         app.get('/member-overview', async (req, res) => {
             try {
                 const { userEmail, role } = req.query;
 
                 if (!userEmail || !role) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Missing userEmail or role"
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: "Missing userEmail or role" 
                     });
                 }
 
-                const user = await usersCollection.findOne({
-                    email: userEmail,
-                    role: role
+                const user = await usersCollection.findOne({ 
+                    email: userEmail, 
+                    role: role 
                 });
-
+                
                 if (!user) {
-                    return res.status(403).json({
-                        success: false,
-                        message: "Unauthorized or user not found"
+                    return res.status(403).json({ 
+                        success: false, 
+                        message: "Unauthorized or user not found" 
                     });
                 }
 
-                const registrations = await eventRegistrationsCollection.find({
-                    userEmail
+                const registrations = await eventRegistrationsCollection.find({ 
+                    userEmail 
                 }).toArray();
 
                 const totalEventsRegistered = registrations.length;
                 const uniqueClubIds = [...new Set(registrations.map((r) => r.clubId))];
 
-                const clubs = await clubsCollection.find({
-                    _id: { $in: uniqueClubIds.map(id => new ObjectId(id)) }
+                const clubs = await clubsCollection.find({ 
+                    _id: { $in: uniqueClubIds.map(id => new ObjectId(id)) } 
                 }).toArray();
 
                 const totalClubsJoined = clubs.length;
@@ -1169,93 +1160,93 @@ async function run() {
                 });
             } catch (error) {
                 console.error("Member Overview Error:", error);
-                res.status(500).json({
-                    success: false,
-                    message: "Server error"
+                res.status(500).json({ 
+                    success: false, 
+                    message: "Server error" 
                 });
             }
         });
-
+        
         // Get user's clubs
         app.get('/member/my-clubs', async (req, res) => {
             try {
                 const { userEmail, role } = req.query;
 
                 if (!userEmail) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'userEmail is required'
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: 'userEmail is required' 
                     });
                 }
 
-                const clubs = await clubMembershipCollection.find({
-                    userEmail
+                const clubs = await clubMembershipCollection.find({ 
+                    userEmail 
                 }).toArray();
 
                 res.json(clubs);
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: 'Server error',
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: 'Server error', 
+                    error: error.message 
                 });
             }
         });
-
+        
         // Get user's events
         app.get('/member/my-events', async (req, res) => {
             try {
                 const { userEmail, role } = req.query;
 
                 if (!userEmail) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'userEmail is required'
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: 'userEmail is required' 
                     });
                 }
 
-                const events = await eventRegistrationsCollection.find({
-                    userEmail
+                const events = await eventRegistrationsCollection.find({ 
+                    userEmail 
                 }).toArray();
 
                 res.json(events);
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: 'Server error',
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: 'Server error', 
+                    error: error.message 
                 });
             }
         });
-
+        
         // Get user's payments
         app.get('/member/my-payments', async (req, res) => {
             try {
                 const { userEmail, role } = req.query;
 
                 if (!userEmail) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'userEmail is required'
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: 'userEmail is required' 
                     });
                 }
 
-                const payments = await paymentCollection.find({
-                    userEmail
+                const payments = await paymentCollection.find({ 
+                    userEmail 
                 }).toArray();
 
                 res.json(payments);
             } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    message: 'Server error',
-                    error: error.message
+                res.status(500).json({ 
+                    success: false, 
+                    message: 'Server error', 
+                    error: error.message 
                 });
             }
         });
-
+        
         // ==================== 404 HANDLER ====================
-
+        
         app.use((req, res) => {
             res.status(404).json({
                 success: false,
@@ -1264,12 +1255,12 @@ async function run() {
                 method: req.method
             });
         });
-
+        
         console.log("✅ All API endpoints loaded successfully");
-
+        
     } catch (error) {
         console.error("Failed to connect to MongoDB:", error.message);
-
+        
         // Basic routes if MongoDB connection fails
         app.get('/', (req, res) => {
             res.json({
@@ -1278,7 +1269,7 @@ async function run() {
                 error: error.message
             });
         });
-
+        
         app.get('/health', (req, res) => {
             res.json({
                 status: 'degraded',
