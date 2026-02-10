@@ -41,7 +41,8 @@ const verifyToken = async (req, res, next) => {
     }
 };
 
-const uri = `mongodb+srv://${process.env.DB_User}:${process.env.DB_Pass}@cluster0.xp73onh.mongodb.net/?appName=Cluster0`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.xp73onh.mongodb.net/zap_shift_db?retryWrites=true&w=majority`;
+
 const client = new MongoClient(uri, {
     serverApi: {
         version: ServerApiVersion.v1,
@@ -1281,7 +1282,7 @@ async function run() {
 run().catch(console.dir);
 
 // Start server
-app.listen(port, () => {
+// app.listen(port, () => {
     console.log(`🚀 Server running on port ${port}`);
-    // console.log(`🌐 Open http://localhost:${port} to test`);
-});
+//     // console.log(`🌐 Open http://localhost:${port} to test`);
+// });
